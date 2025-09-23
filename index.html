@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GBA 風格問答對戰小遊戲</title>
+<style>
+  body{font-family: "Apple SD Gothic Neo", "Noto Sans TC", Arial, sans-serif; background:#87CEEB; margin:0; padding:0; display:flex; align-items:center; justify-content:center; min-height:100vh;}
+  .screen{width:720px; max-width:96vw; background:#cde6ff; border:6px solid #222; border-radius:8px; box-shadow:8px 8px 0 rgba(0,0,0,0.15); padding:12px; position:relative;}
+  .center{display:flex; align-items:center; justify-content:center; flex-direction:column;}
+  img.banner{width:100%; max-height:240px; object-fit:cover; border:4px solid #000; background:#fff;}
+  .btn{background:#222;color:#fff;padding:10px 14px;border-radius:6px;cursor:pointer;margin:8px;display:inline-block;text-decoration:none;}
+  .flex-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
+  .char{width:150px;border:3px solid #111;padding:6px;background:#fff;border-radius:6px;cursor:pointer;text-align:center;}
+  .char img{width:100%;height:120px;object-fit:contain;display:block;}
+  .panel{background:#fff;padding:10px;border-radius:6px;border:3px solid #000;margin-top:12px;min-height:110px;}
+  .hidden{display:none;}
+  .question{font-size:20px;margin-bottom:8px;}
+  .result{font-weight:700;font-size:22px;margin-top:8px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;}
+  .small{font-size:12px;color:#333}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div id="startScreen" class="center">
+    <img class="banner" src="https://i.postimg.cc/0N9yfXx0/20250731-1436-remix-01k1fjy742fytag3mwaandstqd.png" alt="遊戲封面">
+    <div style="margin-top:10px;">
+      <button class="btn" id="toSelect">開始遊戲</button>
+    </div>
+    <div class="small" style="margin-top:8px;">風格：GBA 寶可夢 對戰樣式（問答對戰）</div>
+  </div>
+
+  <div id="selectScreen" class="hidden center">
+    <div class="topbar" style="width:100%">
+      <div><strong>選擇你的角色</strong></div>
+      <div><button class="btn" id="backToStart">返回</button></div>
+    </div>
+    <div class="flex-row" id="chars">
+      <!-- characters inserted by JS -->
+    </div>
+    <div class="panel" id="selectHelp">選好角色後，選擇要對戰的對手（一般對手或最後的王）。</div>
+  </div>
+
+  <div id="opponentScreen" class="hidden center">
+    <div class="topbar" style="width:100%">
+      <div><strong>選擇對手</strong></div>
+      <div><button class="btn" id="backToSelect">返回角色選單</button></div>
+    </div>
+    <div class="flex-row" id="opponents">
+      <!-- opponents here -->
+    </div>
+    <div class="panel" id="oppHelp">選一般對手會有三題隨機數學題；挑戰王只有一題「我是誰？」</div>
+  </div>
+
+  <div id="battleScreen" class="hidden center">
+    <div class="topbar" style="width:100%">
+      <div><strong id="battleTitle">對戰</strong></div>
+      <div><button class="btn" id="backToStartFromBattle">回主選單</button></div>
+    </div>
+    <div class="panel" id="battlePanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="width:45%;text-align:center;">
+          <div id="playerName">你</div>
+          <img id="playerImg" src="" style="width:100%;max-width:220px;height:140px;object-fit:contain;border:3px solid #000;background:#fff;margin-top:6px;">
+        </div>
+        <div style="width:45%;text-align:center;">
+          <div id="enemyName">對手</div>
+          <img id="enemyImg" src="" style="width:100%;max-width:220px;height:140px;object-fit:contain;border:3px solid #000;background:#fff;margin-top:6px;">
+        </div>
+      </div>
+
+      <div id="qArea" style="margin-top:12px;">
+        <div class="question" id="questionText"></div>
+        <input id="answerInput" placeholder="在這裡輸入答案" style="padding:8px;width:60%;font-size:16px;border:2px solid #333;border-radius:6px;">
+        <div style="margin-top:8px;">
+          <button class="btn" id="submitAns">送出</button>
+          <button class="btn" id="skipQ">跳過（算錯）</button>
+        </div>
+        <div id="progress" class="small" style="margin-top:10px;"></div>
+      </div>
+
+      <div id="outcome" class="hidden">
+        <div class="result" id="outcomeText"></div>
+        <div style="margin-top:8px;">
+          <button class="btn" id="playAgain">再玩一次</button>
+          <button class="btn" id="toSelect2">選角色</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="victoryAudio" src="One Minute Victory.mp3"></audio>
+</div>
+
+<script>
+// Data setup
+const chars = [
+  {name:'角色 A', img:'https://i.postimg.cc/kM2KKGTX/202509164.png'},
+  {name:'角色 B', img:'https://i.postimg.cc/SxhMBrkJ/20250916-5.png'},
+  {name:'角色 C', img:'https://i.postimg.cc/Xq5rhZPf/20250916-2.png'},
+  {name:'角色 D', img:'https://i.postimg.cc/k5ZXmJKf/20250916-3.png'}
+];
+const boss = {name:'最終王', img:'https://i.postimg.cc/WbRFZnDX/20250916-1.png'};
+
+// Question pools
+const mathQs = [
+  {q:'1 + 1 = ?', a:'2'},
+  {q:'2 + 2 = ?', a:'4'},
+  {q:'3 + 3 = ?', a:'6'}
+];
+const bossQ = {q:'我是誰？', a:'孫中山'};
+
+// State
+let player = null;
+let enemy = null;
+let currentQs = [];
+let currentIndex = 0;
+let score = 0;
+let isBossFight = false;
+
+// Helper: show/hide
+function show(id){document.getElementById(id).classList.remove('hidden');}
+function hide(id){document.getElementById(id).classList.add('hidden');}
+
+function initCharSelect(){
+  const container = document.getElementById('chars');
+  container.innerHTML = '';
+  chars.forEach((c, idx) => {
+    const el = document.createElement('div');
+    el.className = 'char';
+    el.innerHTML = `<img src="${c.img}" alt="${c.name}"><div style="margin-top:6px"><strong>${c.name}</strong></div>`;
+    el.onclick = ()=>{ player = c; openOpponentSelect(); };
+    container.appendChild(el);
+  });
+}
+
+function openOpponentSelect(){
+  hide('startScreen'); hide('selectScreen'); hide('battleScreen');
+  show('opponentScreen');
+  // populate opponents
+  const container = document.getElementById('opponents');
+  container.innerHTML = '';
+  // add three normal opponents (reuse character images)
+  chars.forEach((c, i)=>{
+    const el = document.createElement('div');
+    el.className = 'char';
+    el.innerHTML = `<img src="${c.img}" alt="${c.name}"><div style="margin-top:6px"><strong>對手 ${i+1}</strong></div>`;
+    el.onclick = ()=>{ enemy = c; startBattle(false); };
+    container.appendChild(el);
+  });
+  // add boss
+  const bossEl = document.createElement('div');
+  bossEl.className = 'char';
+  bossEl.innerHTML = `<img src="${boss.img}" alt="${boss.name}"><div style="margin-top:6px"><strong>${boss.name}</strong></div>`;
+  bossEl.onclick = ()=>{ enemy = boss; startBattle(true); };
+  container.appendChild(bossEl);
+}
+
+function startBattle(bossFight){
+  isBossFight = bossFight;
+  currentIndex = 0; score = 0;
+  // choose questions
+  if(bossFight){
+    currentQs = [bossQ];
+  }else{
+    // randomize mathQs order and pick 3 (but we have only 3, so shuffle)
+    currentQs = shuffleArray(mathQs.slice());
+  }
+  // show battle
+  hide('startScreen'); hide('selectScreen'); hide('opponentScreen');
+  document.getElementById('playerImg').src = player.img;
+  document.getElementById('playerName').textContent = player.name;
+  document.getElementById('enemyImg').src = enemy.img;
+  document.getElementById('enemyName').textContent = enemy.name;
+  document.getElementById('outcome').classList.add('hidden');
+  document.getElementById('qArea').classList.remove('hidden');
+  show('battleScreen');
+  updateQuestion();
+}
+
+function updateQuestion(){
+  const qObj = currentQs[currentIndex];
+  document.getElementById('questionText').textContent = qObj.q;
+  document.getElementById('answerInput').value = '';
+  document.getElementById('progress').textContent = `第 ${currentIndex+1} 題 / 共 ${currentQs.length} 題`;
+}
+
+function submitAnswer(){
+  const input = document.getElementById('answerInput').value.trim();
+  const correct = currentQs[currentIndex].a.trim();
+  if(input === correct){
+    score++;
+  }
+  nextOrFinish();
+}
+
+function skipQuestion(){
+  // counts as wrong
+  nextOrFinish();
+}
+
+function nextOrFinish(){
+  currentIndex++;
+  if(currentIndex >= currentQs.length){
+    finishBattle();
+  }else{
+    updateQuestion();
+  }
+}
+
+function finishBattle(){
+  document.getElementById('qArea').classList.add('hidden');
+  const outcomeText = document.getElementById('outcomeText');
+  const audio = document.getElementById('victoryAudio');
+  // win condition: all answers correct
+  if(score === currentQs.length){
+    outcomeText.textContent = '勝利！你贏了！';
+    // play victory audio
+    try{ audio.currentTime = 0; audio.play(); }catch(e){ console.warn('audio play failed', e); }
+  }else{
+    outcomeText.textContent = '失敗…請再試一次。';
+  }
+  document.getElementById('outcome').classList.remove('hidden');
+}
+
+function shuffleArray(arr){
+  for(let i = arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// events
+document.getElementById('toSelect').onclick = ()=>{ hide('startScreen'); show('selectScreen'); initCharSelect(); };
+document.getElementById('backToStart').onclick = ()=>{ hide('selectScreen'); show('startScreen'); };
+document.getElementById('backToSelect').onclick = ()=>{ hide('opponentScreen'); show('selectScreen'); };
+document.getElementById('backToStartFromBattle').onclick = ()=>{ audioPause(); hide('battleScreen'); show('startScreen'); };
+document.getElementById('submitAns').onclick = submitAnswer;
+document.getElementById('skipQ').onclick = skipQuestion;
+document.getElementById('playAgain').onclick = ()=>{ audioPause(); show('selectScreen'); hide('battleScreen'); initCharSelect(); };
+document.getElementById('toSelect2').onclick = ()=>{ audioPause(); show('selectScreen'); hide('battleScreen'); initCharSelect(); };
+
+function audioPause(){ const a=document.getElementById('victoryAudio'); try{ a.pause(); a.currentTime=0;}catch(e){} }
+
+// init basic
+initCharSelect();
+
+</script>
+</body>
+</html>
