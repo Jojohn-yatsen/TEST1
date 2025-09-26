@@ -1,293 +1,207 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>百玩對抗Q & A</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>百玩對抗Q & A — 修正版</title>
     <style>
+        /* (保留並整理原樣式，將重複 id 改為 class，並修正一些命名衝突) */
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            font-family: Arial, sans-serif;
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background: #000;
         }
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            background-color: #fff;
+        #game-container{position:relative;width:100vw;height:100vh;background-color:#fff}
+
+        /* 開始畫面 */
+        #start-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background-image:url('https://i.postimg.cc/3N4DjC4Y/20250916-1708-remix-01k58wdqaqejhbq14ehb40dv9q.png');background-size:cover;background-position:center;position:relative}
+        #title{font-size:48px;color:white;background-color:black;padding:15px 30px;border:4px solid white;font-weight:bold;text-shadow:2px 2px 4px rgba(0,0,0,0.8);border-radius:10px;margin-bottom:20px}
+        #start-button{position:absolute;bottom:50px;font-size:32px;padding:15px 40px;background-color:#28a745;color:white;border:3px solid white;cursor:pointer;border-radius:10px;font-weight:bold;text-shadow:1px 1px 2px rgba(0,0,0,0.8);transition:all 0.3s}
+        #start-button:hover{background-color:#218838;transform:scale(1.05)}
+        .pigeon{position:absolute;width:60px;height:60px;background-size:contain;background-repeat:no-repeat;transition:all 0.3s;z-index:10}
+
+        /* 角色選擇畫面 */
+        #character-select{display:none;position:relative;height:100%;background:linear-gradient(135deg,#ffd700,#ffeb3b);padding:20px;box-sizing:border-box;overflow:hidden}
+        .char-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;justify-content:center;align-items:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:all 0.8s ease}
+        .char-grid.selected-mode{top:75%;transform:translate(-50%,-50%) scale(0.7)}
+        .char-box{width:180px;height:200px;background-color:white;border:4px solid #333;cursor:pointer;position:relative;border-radius:15px;transition:all 0.5s ease;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+        .char-box:hover{transform:scale(1.05);box-shadow:0 8px 16px rgba(0,0,0,0.3)}
+        .char-box img{width:140px;height:140px;object-fit:contain}
+        .char-name{font-size:18px;font-weight:bold;color:#333;margin-top:10px}
+        .char-box.selected{border:6px solid red;box-shadow:0 0 20px rgba(255,0,0,0.5);position:absolute;top:15%;left:50%;transform:translate(-50%,-50%) scale(1.5);z-index:100;background:linear-gradient(135deg,#fff,#f8f9fa)}
+        .char-box.dimmed{opacity:0.4;filter:grayscale(50%)}
+        #selected-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at center,transparent 30%,rgba(0,0,0,0.6) 70%);pointer-events:none;opacity:0;transition:opacity 0.5s;z-index:50}
+        #selected-overlay.active{opacity:1}
+        #confirm-button{position:absolute;bottom:10%;left:50%;transform:translateX(-50%);padding:20px 40px;background:linear-gradient(135deg,#28a745,#20c997);color:white;border:none;border-radius:12px;font-size:24px;cursor:pointer;font-weight:bold;opacity:0;transition:all 0.5s;z-index:101;box-shadow:0 8px 16px rgba(0,0,0,0.3)}
+        #confirm-button.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        #confirm-button:hover{background:linear-gradient(135deg,#218838,#1e7e34);transform:translateX(-50%) translateY(-5px);box-shadow:0 12px 20px rgba(0,0,0,0.4)}
+
+        /* 錦標賽畫面 */
+        #bracket-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#e3f2fd,#bbdefb);padding:20px}
+        #bracket-title{font-size:48px;color:#1565c0;text-shadow:2px 2px 4px rgba(0,0,0,0.3);margin-bottom:40px}
+        #bracket{display:flex;justify-content:space-around;width:100%;max-width:1200px;margin-bottom:40px}
+        .bracket-side{display:flex;flex-direction:column;gap:30px}
+        .match{display:flex;align-items:center;background:white;border:3px solid #333;border-radius:15px;padding:20px;min-width:180px;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
+        .fighter{width:80px;height:80px;background-size:contain;background-repeat:no-repeat;background-position:center;margin:0 10px;border-radius:50%;border:2px solid #ccc}
+        .vs-text{font-size:24px;font-weight:bold;color:#ff5722}
+        .eliminated{opacity:0.3;filter:grayscale(100%)}
+        .winner{border:3px solid gold;box-shadow:0 0 15px rgba(255,215,0,0.6)}
+        #start-battle{font-size:24px;padding:15px 40px;background-color:#ff5722;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:bold}
+
+        /* 戰鬥畫面 */
+        #battle-screen{display:none;position:relative;height:100%;background:linear-gradient(135deg,#87ceeb,#4682b4);overflow:hidden}
+        #player{position:absolute;bottom:35%;left:10%;width:180px;height:180px;background-size:contain;background-repeat:no-repeat;background-position:center;transition:all 0.8s cubic-bezier(0.25,0.46,0.45,0.94);z-index:10;transform:rotate(-10deg)}
+        #enemy{position:absolute;top:25%;right:10%;width:180px;height:180px;background-size:contain;background-repeat:no-repeat;background-position:center;transition:all 0.8s cubic-bezier(0.25,0.46,0.45,0.94);z-index:10;transform:rotate(10deg)}
+
+        .hp-bar{width:200px;height:25px;background-color:#333;border:2px solid #fff;border-radius:15px;overflow:hidden;position:absolute;box-shadow:0 4px 8px rgba(0,0,0,0.3)}
+        #player-hp{bottom:15%;left:5%}
+        #enemy-hp{top:8%;right:5%}
+        .hp-fill{height:100%;background:linear-gradient(90deg,#4caf50,#8bc34a);transition:width 0.8s ease;position:relative}
+        .hp-fill::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);animation:hp-shine 2s infinite}
+        @keyframes hp-shine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+        .hp-fill.low{background:linear-gradient(90deg,#f44336,#ff9800)}
+
+        /* 問題區（使用 class ，同一份樣式適用於 battle / final） */
+        .question-area{position:absolute;bottom:5%;left:50%;transform:translateX(-50%);text-align:center;background:rgba(255,255,255,0.95);padding:25px 35px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-width:70%;min-width:500px;backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,0.3)}
+        .question{font-size:22px;color:#333;margin-bottom:20px;font-weight:bold;line-height:1.4;min-height:60px;display:flex;align-items:center;justify-content:center}
+        .options{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px}
+        .option{padding:15px;background:linear-gradient(135deg,#2196f3,#03a9f4);color:white;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:bold;transition:all 0.3s ease;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
+        .option:hover{background:linear-gradient(135deg,#1976d2,#0288d1);transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,0,0,0.3)}
+        .option:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none}
+        .answer-input{width:350px;font-size:18px;padding:15px;border:2px solid #ddd;border-radius:12px;margin-top:20px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.1)}
+        .answer-input:focus{outline:none;border-color:#2196f3;box-shadow:0 0 10px rgba(33,150,243,0.3)}
+        .submit-answer{font-size:18px;padding:15px 25px;margin-left:15px;background:linear-gradient(135deg,#4caf50,#45a049);color:white;border:none;border-radius:12px;cursor:pointer;font-weight:bold;box-shadow:0 4px 8px rgba(0,0,0,0.2);transition:all 0.3s}
+        .submit-answer:hover{background:linear-gradient(135deg,#45a049,#3e8e41);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.3)}
+        .submit-answer:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none}
+
+        /* 最終戰鬥 */
+        #final-battle{display:none;position:relative;height:100%;background:linear-gradient(135deg,#ff4500,#ff6347);overflow:hidden}
+        .stage-platform{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);width:60%;height:100px;background:linear-gradient(135deg,#8b0000,#dc143c);border-radius:20px;border:5px solid #fff}
+        #final-player{position:absolute;bottom:30%;left:20%;width:200px;height:200px;background-size:contain;background-repeat:no-repeat;background-position:center;transition:all 0.5s;z-index:10}
+        #final-enemy{position:absolute;bottom:30%;right:20%;width:200px;height:200px;background-size:contain;background-repeat:no-repeat;background-position:center;transition:all 0.5s;z-index:10}
+        #final-player-hp{bottom:15%;left:5%}
+        #final-enemy-hp{top:8%;right:5%}
+
+        /* 受傷效果 */
+        .hurt{filter:hue-rotate(0deg) saturate(0) brightness(1) contrast(1) sepia(1) hue-rotate(320deg) saturate(6) brightness(1);animation:hurt-flash 0.5s, shake 0.5s}
+        @keyframes hurt-flash{0%,100%{opacity:1}25%,75%{opacity:0.3}50%{opacity:0.6}}
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
-        #start-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            background-image: url('https://i.postimg.cc/3N4DjC4Y/20250916-1708-remix-01k58wdqaqejhbq14ehb40dv9q.png');
-            background-size: cover;
-        }
-        #title {
-            font-size: 48px;
-            color: white;
-            background-color: black;
-            padding: 10px 20px;
-            border: 2px solid white;
-        }
-        #start-button {
-            position: absolute;
-            bottom: 20px;
-            font-size: 24px;
-            padding: 10px 20px;
-            background-color: green;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .pigeon {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        #character-select {
-            display: none;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            background-color: #ffd700;
-        }
-        .char-box {
-            width: 150px;
-            height: 150px;
-            margin: 10px;
-            background-color: white;
-            border: 2px solid black;
-            cursor: pointer;
-            position: relative;
-        }
-        .char-box img {
-            width: 100%;
-            height: 100%;
-        }
-        .selected {
-            border: 4px solid red;
-        }
-        #bracket-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            background-color: #eee;
-        }
-        #bracket {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        .match {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid black;
-            padding: 10px;
-        }
-        .fighter {
-            width: 100px;
-            height: 100px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            position: relative;
-        }
-        .eliminated {
-            opacity: 0.5;
-            filter: grayscale(100%);
-        }
-        .eliminated::after {
-            content: 'X';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 50px;
-            color: red;
-        }
-        #battle-screen {
-            display: none;
-            position: relative;
-            height: 100%;
-            background-color: #add8e6;
-        }
-        #player {
-            position: absolute;
-            bottom: 10%;
-            left: 10%;
-            width: 200px;
-            height: 200px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            transform: rotate(-45deg);
-        }
-        #enemy {
-            position: absolute;
-            top: 10%;
-            right: 10%;
-            width: 200px;
-            height: 200px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            transform: rotate(45deg);
-        }
-        .hp-bar {
-            width: 150px;
-            height: 20px;
-            background-color: red;
-            position: absolute;
-        }
-        #player-hp {
-            bottom: 5%;
-            left: 5%;
-        }
-        #enemy-hp {
-            top: 5%;
-            right: 5%;
-        }
-        .hp-fill {
-            height: 100%;
-            background-color: green;
-        }
-        #question-area {
-            position: absolute;
-            bottom: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-        }
-        #question {
-            font-size: 24px;
-        }
-        .options {
-            display: flex;
-            flex-direction: column;
-        }
-        .option {
-            margin: 5px;
-            padding: 10px;
-            background-color: lightblue;
-            cursor: pointer;
-        }
-        #answer-input {
-            width: 300px;
-            font-size: 18px;
-        }
-        #submit-answer {
-            font-size: 18px;
-            margin-left: 10px;
-        }
-        #final-battle {
-            display: none;
-            position: relative;
-            height: 100%;
-            background-color: #ff4500;
-        }
-        #final-player {
-            position: absolute;
-            left: 20%;
-            top: 40%;
-            width: 200px;
-            height: 200px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        #final-enemy {
-            position: absolute;
-            right: 20%;
-            top: 40%;
-            width: 200px;
-            height: 200px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        .hurt {
-            opacity: 0.5;
-            background-color: rgba(255, 0, 0, 0.5);
-        }
-        .push-back {
-            transition: all 0.5s;
-        }
-        #victory-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            background-color: gold;
-        }
-        #champion-title {
-            font-size: 48px;
-            color: black;
-        }
-        #champion-img {
-            width: 300px;
-            height: 300px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        #restart-button {
-            font-size: 24px;
-            padding: 10px 20px;
-            background-color: green;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+        .push-back{transform:translateX(50px) !important}
+
+        /* 勝利畫面 */
+        #victory-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#ffd700,#ffeb3b);position:relative;overflow:hidden}
+        #champion-title{font-size:48px;color:#333;text-shadow:2px 2px 4px rgba(0,0,0,0.3);margin-bottom:30px;animation:bounce 2s infinite}
+        @keyframes bounce{0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-30px)}60%{transform:translateY(-15px)}}
+        #champion-img{width:300px;height:300px;background-size:contain;background-repeat:no-repeat;background-position:center;animation:float 2s ease-in-out infinite;margin-bottom:30px}
+        @keyframes float{0%,100%{transform:translateY(0px) scale(1)}50%{transform:translateY(-20px) scale(1.1)}}
+        .victory-buttons{display:flex;gap:20px}
+        #restart-button,#speed-button{font-size:24px;padding:15px 30px;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:bold;transition:all 0.3s}
+        #restart-button{background-color:#28a745}#restart-button:hover{background-color:#218838;transform:scale(1.05)}
+        #speed-button{background-color:#ff5722}#speed-button:hover{background-color:#e64a19;transform:scale(1.05)}
+        #loser-img{position:absolute;bottom:10%;right:10%;width:200px;height:200px;background-size:contain;background-repeat:no-repeat;background-position:center;transform:scaleY(-1);opacity:0.7}
+        #made-in-heaven{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:72px;color:white;text-shadow:4px 4px 8px rgba(0,0,0,0.8);font-weight:bold;display:none;animation:explosion 3s}
+        @keyframes explosion{0%{transform:translate(-50%,-50%) scale(0);opacity:0}50%{transform:translate(-50%,-50%) scale(1.5);opacity:1}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
+
+        /* 轉場效果 */
+        .fade-out{opacity:0;transition:opacity 1s}
+        .flash-effect{animation:flash 0.1s infinite}
+        @keyframes flash{0%,100%{background-color:transparent}50%{background-color:rgba(255,255,255,0.8)}}
+        #transition-overlay {position:fixed;top:0;left:0;width:100vw;height:100vh;background:black;opacity:0;pointer-events:none;z-index:9999;transition:opacity 1s;}
+
+        /* 響應式 */
+        @media (max-width:768px){#title{font-size:32px;padding:10px 20px}.char-box{width:120px;height:140px}.char-box img{width:100px;height:100px}.question-area{min-width:90%;padding:20px}.options{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
     <div id="game-container">
+        <!-- 轉場遮罩 -->
+        <div id="transition-overlay"></div>
+
+        <!-- 開始畫面 -->
         <div id="start-screen">
             <div id="title">百玩對抗Q & A</div>
             <button id="start-button">START</button>
         </div>
-        <div id="character-select"></div>
+
+        <!-- 角色選擇畫面 -->
+        <div id="character-select">
+            <div id="selected-overlay"></div>
+            <div class="char-grid" id="char-grid"></div>
+            <button id="confirm-button">確定選擇</button>
+        </div>
+
+        <!-- 錦標賽畫面 -->
         <div id="bracket-screen">
-            <h1>錦標賽對抗</h1>
-            <div id="bracket"></div>
+            <h1 id="bracket-title">錦標賽對抗</h1>
+            <div id="bracket">
+                <div class="bracket-side" id="left-bracket"></div>
+                <div class="bracket-side" id="right-bracket"></div>
+            </div>
             <button id="start-battle">開始戰鬥</button>
         </div>
+
+        <!-- 戰鬥畫面 -->
         <div id="battle-screen">
             <div id="player"></div>
             <div id="enemy"></div>
-            <div id="player-hp" class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
-            <div id="enemy-hp" class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
-            <div id="question-area">
-                <div id="question"></div>
-                <div id="options" class="options"></div>
-                <input type="text" id="answer-input" style="display: none;">
-                <button id="submit-answer" style="display: none;">提交</button>
+            <div id="player-hp" class="hp-bar"><div class="hp-fill"></div></div>
+            <div id="enemy-hp" class="hp-bar"><div class="hp-fill"></div></div>
+
+            <div class="question-area">
+                <div class="question"></div>
+                <div class="options"></div>
+                <input class="answer-input" style="display:none" />
+                <button class="submit-answer" style="display:none">提交</button>
             </div>
         </div>
+
+        <!-- 最終戰鬥畫面 -->
         <div id="final-battle">
+            <div class="stage-platform"></div>
             <div id="final-player"></div>
             <div id="final-enemy"></div>
-            <div id="player-hp" class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
-            <div id="enemy-hp" class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
-            <div id="question-area">
-                <div id="question"></div>
-                <div id="options" class="options"></div>
-                <input type="text" id="answer-input" style="display: none;">
-                <button id="submit-answer" style="display: none;">提交</button>
+            <div id="final-player-hp" class="hp-bar"><div class="hp-fill"></div></div>
+            <div id="final-enemy-hp" class="hp-bar"><div class="hp-fill"></div></div>
+
+            <div class="question-area">
+                <div class="question"></div>
+                <div class="options"></div>
+                <input class="answer-input" style="display:none" />
+                <button class="submit-answer" style="display:none">提交</button>
             </div>
         </div>
+
+        <!-- 勝利畫面 -->
         <div id="victory-screen">
             <h1 id="champion-title">恭喜冠軍！</h1>
             <div id="champion-img"></div>
-            <button id="restart-button">重新開始</button>
+            <div id="loser-img"></div>
+            <div class="victory-buttons">
+                <button id="restart-button">重新開始</button>
+                <button id="speed-button">點我加速</button>
+            </div>
+            <div id="made-in-heaven">Made in Heaven</div>
         </div>
     </div>
+
     <script>
+        // --- 資料 & 狀態 ---
         const characters = {
             a: { name: '甲', img: 'https://i.postimg.cc/s22SDZPP/20250916-1.png' },
             b: { name: '乙', img: 'https://i.postimg.cc/k5ZVJYg9/20250916-4.png' },
@@ -296,7 +210,6 @@
             e: { name: '戊', img: 'https://i.postimg.cc/rsy2vM2p/20250916-5.png' },
             f: { name: '己', img: 'https://i.postimg.cc/rF85YbdY/20250925-1413.png' }
         };
-
         const pigeons = [
             'https://i.postimg.cc/9MT4gPtp/1.png',
             'https://i.postimg.cc/zXdfjPYN/2.png',
@@ -304,332 +217,479 @@
             'https://i.postimg.cc/fLKsbJws/AI-3.png',
             'https://i.postimg.cc/Y0CHLM9W/AI-4.png'
         ];
-
         const questions = [
             { type: 'choice', q: '大象幾隻腳?', options: ['A、10', 'B、5', 'C、6', 'D、4'], answer: 'D' },
-            { type: 'choice', q: '雞甚麼時候會飛?', options: ['A、不知道', 'B、狗跳', 'C、雞不會飛', 'D、一人一隻雞翅膀'], answer: 'D' },
+            { type: 'choice', q: '雞甚麼時候會飛?', options: ['A、不知道', 'B、狗跳', 'C、雞不會飛', 'D、一人一隻雞翅膀'], answer: 'B' },
+            { type: 'choice', q: '貓會怎麼叫?', options: ['A、 喵', 'B、蛤', 'C、汪', 'D、逆'], answer: 'B' },
             { type: 'text', q: '誰在你背後他很火?', answer: '你名義老爸' },
             { type: 'text', q: '是誰?', answer: '在敲打我窗' },
-            { type: 'essay', q: '共有幾個字?', answer: '5' },
-            { type: 'choice', q: '寶可夢的第一代有多少隻?', options: ['A、151', 'B、100', 'C、200', 'D、50'], answer: 'A' },
-            { type: 'text', q: '洛克人又叫甚麼?', answer: '艾克斯' },
-            { type: 'choice', q: '快打旋風的絕招?', options: ['A、阿雷古', 'B、Mario', 'C、Sonic', 'D、Link'], answer: 'A' }
+            { type: 'text', q: '共有幾個字?', answer: '5' },
+            { type: 'text', q: '不知為不知', answer: '視知也' }
         ];
 
-        let playerChar, opponents = [], currentOpponent, round = 0, playerHP = 100, enemyHP = 100, questionIndex = 0, isFinal = false;
-        let bracket = [['a', 'b'], ['c', 'd'], ['e', 'f']];
-        let winners = [];
+        let gameState = {
+            playerChar: null,
+            opponents: [],
+            currentOpponent: null,
+            round: 0,
+            playerHP: 100,
+            enemyHP: 100,
+            questionIndex: 0,
+            isFinal: false,
+            usedQuestions: [],
+            floatSpeed: 2,
+            isAccelerating: false,
+            isAccelerated: false
+        };
 
-        function animatePigeon() {
+        // 鴿子控制 (避免重複 spawn)
+        let pigeonTimeout = null;
+        let pigeonActive = false;
+
+        // 預載圖片
+        function preloadImages() {
+            const images = Object.values(characters).map(c => c.img).concat(pigeons);
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+
+        function init(){
+            preloadImages();
+            renderCharGrid();
+            startPigeonLoop();
+            setupEventListeners();
+        }
+
+        // 產生單隻鴿子並在畫面上移動
+        function spawnPigeon(){
+            const startScreen = document.getElementById('start-screen');
+            if (!startScreen || startScreen.style.display === 'none') return; // 只在開始畫面顯示
+
             const pigeon = document.createElement('div');
-            pigeon.classList.add('pigeon');
-            pigeon.style.backgroundImage = `url(${pigeons[Math.floor(Math.random() * pigeons.length)]})`;
-            pigeon.style.left = '-50px';
-            pigeon.style.top = `${Math.random() * 80 + 10}%`;
+            pigeon.className = 'pigeon';
+            const pigeonImg = pigeons[Math.floor(Math.random()*pigeons.length)];
+            pigeon.style.backgroundImage = `url(${pigeonImg})`;
+            const startTop = Math.random()*70 + 10;
+            pigeon.style.top = `${startTop}%`;
+            pigeon.style.left = `-120px`;
             document.getElementById('start-screen').appendChild(pigeon);
 
-            let x = -50;
-            const interval = setInterval(() => {
-                x += 5;
-                pigeon.style.left = `${x}px`;
-                if (x > window.innerWidth) {
-                    clearInterval(interval);
-                    pigeon.remove();
-                }
-            }, 50);
+            let x = -120;
+            let scale = 0.8 + Math.random()*0.6;
+            let growing = Math.random() > 0.5;
 
-            setTimeout(animatePigeon, Math.random() * 5000 + 2000);
+            const interval = setInterval(()=>{
+                x += 6 + Math.random()*4; // 隨機速度
+                if (growing) { scale += 0.02; if (scale>=1.6) growing=false; }
+                else { scale -= 0.02; if (scale<=0.6) growing=true; }
+                pigeon.style.left = x+'px';
+                pigeon.style.transform = `scale(${scale})`;
+                if (x > window.innerWidth + 120) { clearInterval(interval); pigeon.remove(); }
+            }, 40);
         }
 
-        function initCharSelect() {
-            const select = document.getElementById('character-select');
-            Object.keys(characters).forEach(key => {
+        function startPigeonLoop(){
+            if (pigeonActive) return;
+            pigeonActive = true;
+            function loop(){
+                spawnPigeon();
+                pigeonTimeout = setTimeout(loop, 3000 + Math.random()*5000);
+            }
+            loop();
+        }
+        function stopPigeonLoop(){ if (pigeonTimeout) clearTimeout(pigeonTimeout); pigeonTimeout=null; pigeonActive=false; }
+
+        // 渲染角色格子
+        function renderCharGrid(){
+            const grid = document.getElementById('char-grid');
+            grid.innerHTML = '';
+            Object.keys(characters).forEach(key=>{
                 const box = document.createElement('div');
-                box.classList.add('char-box');
-                const img = document.createElement('img');
-                img.src = characters[key].img;
-                box.appendChild(img);
-                box.onclick = () => {
-                    document.querySelectorAll('.char-box').forEach(b => b.classList.remove('selected'));
-                    box.classList.add('selected');
-                    playerChar = key;
-                    opponents = Object.keys(characters).filter(k => k !== key).sort(() => Math.random() - 0.5);
-                    initBracket();
-                    select.style.display = 'none';
-                    document.getElementById('bracket-screen').style.display = 'flex';
-                };
-                select.appendChild(box);
+                box.className = 'char-box';
+                box.dataset.char = key;
+                const img = document.createElement('img'); img.src = characters[key].img; box.appendChild(img);
+                const name = document.createElement('div'); name.className='char-name'; name.textContent = characters[key].name; box.appendChild(name);
+                box.addEventListener('click', ()=> selectCharacter(key));
+                grid.appendChild(box);
             });
         }
 
-        function initBracket() {
-            const bracketDiv = document.getElementById('bracket');
-            bracketDiv.innerHTML = '';
-            bracket.forEach(match => {
-                const matchDiv = document.createElement('div');
-                matchDiv.classList.add('match');
-                match.forEach(f => {
-                    const fighter = document.createElement('div');
-                    fighter.classList.add('fighter');
-                    fighter.style.backgroundImage = `url(${characters[f].img})`;
-                    matchDiv.appendChild(fighter);
-                });
-                bracketDiv.appendChild(matchDiv);
-            });
+        function selectCharacter(key){
+            if (gameState.playerChar === key) return;
+            document.querySelectorAll('.char-box').forEach(box=>{ box.classList.remove('selected','dimmed'); });
+            const selectedBox = document.querySelector(`[data-char="${key}"]`);
+            if (!selectedBox) return;
+            selectedBox.classList.add('selected');
+            document.querySelectorAll('.char-box').forEach(box=>{ if (box.dataset.char !== key) box.classList.add('dimmed'); });
+            document.getElementById('char-grid').classList.add('selected-mode');
+            document.getElementById('selected-overlay').classList.add('active');
+            document.getElementById('confirm-button').classList.add('show');
+
+            gameState.playerChar = key;
+            gameState.opponents = Object.keys(characters).filter(k=>k!==key).sort(() => Math.random() - 0.5).slice(0, 3); // 只選3個對手：2普通 + 1冠軍
         }
 
-        function updateBracket(winner, loser) {
-            const matchDivs = document.querySelectorAll('.match');
-            matchDivs.forEach(matchDiv => {
-                const fighters = matchDiv.querySelectorAll('.fighter');
-                fighters.forEach(fighter => {
-                    if (fighter.style.backgroundImage.includes(characters[loser].img)) {
-                        matchDiv.classList.add('eliminated');
-                    }
-                });
-            });
-            winners.push(winner);
-            if (winners.length === 3) {
-                bracket = [[winners[0], winners[1]], [winners[2], playerChar]];
-                initBracket();
-                document.getElementById('battle-screen').style.display = 'none';
-                document.getElementById('bracket-screen').style.display = 'flex';
-            } else if (winners.length >= 4) {
-                document.getElementById('bracket-screen').style.display = 'none';
-                document.getElementById('final-battle').style.display = 'block';
-                isFinal = true;
-                startFinalBattle();
+        function confirmCharacter(){
+            if (!gameState.playerChar) return;
+            const cs = document.getElementById('character-select'); cs.classList.add('flash-effect');
+            setTimeout(()=>{ cs.classList.remove('flash-effect'); cs.style.display='none'; document.getElementById('bracket-screen').style.display='flex'; initBracket(); }, 500);
+        }
+
+        function initBracket(){
+            const left = document.getElementById('left-bracket');
+            const right = document.getElementById('right-bracket');
+            left.innerHTML=''; right.innerHTML='';
+
+            // 顯示所有6個角色，但玩家在右側
+            const allKeys = Object.keys(characters).sort(() => Math.random() - 0.5);
+            const leftKeys = allKeys.slice(0, 3);
+            const rightKeys = allKeys.slice(3, 6);
+            if (!rightKeys.includes(gameState.playerChar)) {
+                const swapIdx = Math.floor(Math.random() * 3);
+                const temp = leftKeys[swapIdx];
+                leftKeys[swapIdx] = gameState.playerChar;
+                rightKeys[rightKeys.indexOf(temp)] = gameState.playerChar; // 確保玩家在右
             }
+
+            // 左側
+            for (let i=0; i<3; i++){
+                const p = leftKeys[i];
+                const el = document.createElement('div'); el.className='match';
+                const f = document.createElement('div'); f.className='fighter'; f.style.backgroundImage = `url(${characters[p].img})`; f.dataset.char=p;
+                const name = document.createElement('div'); name.textContent = characters[p].name; name.style.marginLeft='10px';
+                el.appendChild(f); el.appendChild(name);
+                left.appendChild(el);
+            }
+            // 右側
+            for (let i=0; i<3; i++){
+                const p = rightKeys[i];
+                const el = document.createElement('div'); el.className='match';
+                const f = document.createElement('div'); f.className='fighter'; f.style.backgroundImage = `url(${characters[p].img})`; f.dataset.char=p;
+                const name = document.createElement('div'); name.textContent = characters[p].name; name.style.marginLeft='10px';
+                el.appendChild(f); el.appendChild(name);
+                right.appendChild(el);
+            }
+
+            // 預設 round 與對手
+            gameState.round = 0;
+            gameState.currentOpponent = gameState.opponents[0] || null;
         }
 
-        function startBattle() {
-            isFinal = false;
-            currentOpponent = opponents[round];
-            document.getElementById('player').style.backgroundImage = `url(${characters[playerChar].img})`;
-            document.getElementById('enemy').style.backgroundImage = `url(${characters[currentOpponent].img})`;
-            playerHP = 100;
-            enemyHP = 100;
-            updateHP();
-            questionIndex = 0;
-            nextQuestion();
-        }
-
-        function startFinalBattle() {
-            isFinal = true;
-            currentOpponent = opponents[opponents.length - 1];
-            document.getElementById('final-player').style.backgroundImage = `url(${characters[playerChar].img})`;
-            document.getElementById('final-enemy').style.backgroundImage = `url(${characters[currentOpponent].img})`;
-            playerHP = 100;
-            enemyHP = 100;
-            updateHP();
-            questionIndex = 0;
-            nextQuestion();
-        }
-
-        function updateHP() {
-            document.querySelectorAll('#player-hp .hp-fill').forEach(el => el.style.width = `${playerHP}%`);
-            document.querySelectorAll('#enemy-hp .hp-fill').forEach(el => el.style.width = `${enemyHP}%`);
-        }
-
-        function nextQuestion() {
-            if (questionIndex >= 3 || playerHP <= 0 || enemyHP <= 0) {
-                if (enemyHP <= 0) {
-                    if (isFinal) {
-                        showVictory();
-                    } else {
-                        updateBracket(playerChar, currentOpponent);
-                        round++;
-                        if (round < opponents.length) {
-                            document.getElementById('battle-screen').style.display = 'none';
-                            document.getElementById('bracket-screen').style.display = 'flex';
-                        } else {
-                            document.getElementById('battle-screen').style.display = 'none';
-                            document.getElementById('final-battle').style.display = 'block';
-                            startFinalBattle();
-                        }
-                    }
-                } else if (playerHP <= 0) {
-                    alert('失敗！');
-                    resetGame();
-                } else {
-                    if (playerHP > enemyHP) {
-                        if (isFinal) {
-                            showVictory();
-                        } else {
-                            updateBracket(playerChar, currentOpponent);
-                            round++;
-                            if (round < opponents.length) {
-                                document.getElementById('battle-screen').style.display = 'none';
-                                document.getElementById('bracket-screen').style.display = 'flex';
-                            } else {
-                                document.getElementById('battle-screen').style.display = 'none';
-                                document.getElementById('final-battle').style.display = 'block';
-                                startFinalBattle();
-                            }
-                        }
-                    } else {
-                        alert('失敗！');
-                        resetGame();
-                    }
+        function startBattle(){
+            if (!gameState.playerChar) return alert('請先選擇角色');
+            startTransition(() => {
+                document.getElementById('bracket-screen').style.display='none';
+                if (gameState.round >= 2) { 
+                    document.getElementById('final-battle').style.display='block'; 
+                    gameState.isFinal=true; 
+                    setupFinalBattle(); 
+                } else { 
+                    document.getElementById('battle-screen').style.display='block'; 
+                    gameState.isFinal=false; 
+                    setupBattle(); 
                 }
-                return;
-            }
-            const q = questions[Math.floor(Math.random() * questions.length)];
-            document.getElementById('question').textContent = q.q;
-            const optionsDiv = document.getElementById('options');
-            optionsDiv.innerHTML = '';
-            document.getElementById('answer-input').style.display = 'none';
-            document.getElementById('submit-answer').style.display = 'none';
+            });
+        }
 
-            if (q.type === 'choice') {
-                q.options.forEach(opt => {
-                    const btn = document.createElement('div');
-                    btn.classList.add('option');
-                    btn.textContent = opt;
-                    btn.onclick = () => checkAnswer(opt.charAt(0), q.answer, q.type);
+        function startTransition(callback) {
+            const overlay = document.getElementById('transition-overlay');
+            overlay.style.display = 'block';
+            overlay.style.backgroundColor = 'white';
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.2s';
+
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+                overlay.style.opacity = (flashCount % 2 === 0) ? '1' : '0';
+                flashCount++;
+                if (flashCount >= 30) { // 約3秒 (interval 100ms)
+                    clearInterval(flashInterval);
+                    overlay.style.transition = 'opacity 1s';
+                    overlay.style.backgroundColor = 'black';
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.opacity = '1';
+                        setTimeout(() => {
+                            callback();
+                            overlay.style.opacity = '0';
+                            setTimeout(() => {
+                                overlay.style.display = 'none';
+                                overlay.style.transition = 'opacity 1s';
+                            }, 1000);
+                        }, 1000);
+                    }, 100);
+                }
+            }, 100);
+        }
+
+        function setupBattle(){
+            const playerEl = document.getElementById('player');
+            const enemyEl = document.getElementById('enemy');
+            gameState.currentOpponent = gameState.opponents[gameState.round];
+            gameState.playerHP = 100; gameState.enemyHP = 100; gameState.questionIndex=0; gameState.usedQuestions=[];
+            playerEl.style.backgroundImage = `url(${characters[gameState.playerChar].img})`;
+            enemyEl.style.backgroundImage = `url(${characters[gameState.currentOpponent].img})`;
+            // 入場動畫
+            playerEl.style.left='-300px'; playerEl.style.opacity='0'; setTimeout(()=>{ playerEl.style.transition='all 1s'; playerEl.style.left='10%'; playerEl.style.opacity='1'; },100);
+            enemyEl.style.right='-300px'; enemyEl.style.opacity='0'; setTimeout(()=>{ enemyEl.style.transition='all 1s'; enemyEl.style.right='10%'; enemyEl.style.opacity='1'; },500);
+            updateHP(); setTimeout(()=> nextQuestion(), 900);
+        }
+
+        function setupFinalBattle(){
+            const playerEl = document.getElementById('final-player');
+            const enemyEl = document.getElementById('final-enemy');
+            gameState.currentOpponent = gameState.opponents[gameState.round];
+            gameState.playerHP = 100; gameState.enemyHP = 100; gameState.questionIndex=0; gameState.usedQuestions=[];
+            playerEl.style.backgroundImage = `url(${characters[gameState.playerChar].img})`;
+            enemyEl.style.backgroundImage = `url(${characters[gameState.currentOpponent].img})`;
+            playerEl.style.left = '20%';
+            enemyEl.style.right = '20%';
+            playerEl.style.opacity='0'; enemyEl.style.opacity='0'; setTimeout(()=>{ playerEl.style.transition='opacity 1s'; enemyEl.style.transition='opacity 1s'; playerEl.style.opacity='1'; enemyEl.style.opacity='1'; },300);
+            updateHP(); setTimeout(()=> nextQuestion(), 900);
+        }
+
+        function updateHP(){
+            // 更新對應畫面的血條
+            const playerFill = (gameState.isFinal ? document.querySelector('#final-player-hp .hp-fill') : document.querySelector('#player-hp .hp-fill'));
+            const enemyFill = (gameState.isFinal ? document.querySelector('#final-enemy-hp .hp-fill') : document.querySelector('#enemy-hp .hp-fill'));
+            if (playerFill){ playerFill.style.width = `${gameState.playerHP}%`; if (gameState.playerHP<30) playerFill.classList.add('low'); else playerFill.classList.remove('low'); }
+            if (enemyFill){ enemyFill.style.width = `${gameState.enemyHP}%`; if (gameState.enemyHP<30) enemyFill.classList.add('low'); else enemyFill.classList.remove('low'); }
+        }
+
+        function nextQuestion(){
+            // 三問制
+            if (gameState.questionIndex >= 3 || gameState.playerHP <= 0 || gameState.enemyHP <= 0){ endBattle(); return; }
+            // 選未用過題目
+            let available = questions.map((q,i)=>({q,i})).filter(x=>!gameState.usedQuestions.includes(x.i));
+            if (available.length===0){ gameState.usedQuestions=[]; available = questions.map((q,i)=>({q,i})); }
+            const pick = available[Math.floor(Math.random()*available.length)];
+            gameState.usedQuestions.push(pick.i);
+            displayQuestion(pick.q);
+            gameState.questionIndex++;
+        }
+
+        function displayQuestion(question){
+            const container = gameState.isFinal ? document.getElementById('final-battle') : document.getElementById('battle-screen');
+            const questionEl = container.querySelector('.question');
+            const optionsDiv = container.querySelector('.options');
+            const answerInput = container.querySelector('.answer-input');
+            const submitButton = container.querySelector('.submit-answer');
+
+            questionEl.textContent = question.q;
+            optionsDiv.innerHTML = '';
+            answerInput.style.display='none'; submitButton.style.display='none'; submitButton.disabled=false;
+
+            if (question.type === 'choice'){
+                const shuffled = [...question.options].sort(()=>Math.random()-0.5);
+                shuffled.forEach(opt=>{
+                    const btn = document.createElement('button'); btn.className='option'; btn.textContent = opt; btn.onclick = ()=> checkAnswer(opt.charAt(0), question.answer, container);
                     optionsDiv.appendChild(btn);
                 });
             } else {
-                document.getElementById('answer-input').style.display = 'inline';
-                document.getElementById('submit-answer').style.display = 'inline';
-                document.getElementById('submit-answer').onclick = () => checkAnswer(document.getElementById('answer-input').value, q.answer, q.type);
-                document.getElementById('answer-input').value = '';
+                answerInput.style.display='inline-block'; submitButton.style.display='inline-block'; answerInput.value=''; answerInput.focus();
+                submitButton.onclick = ()=> checkAnswer(answerInput.value.trim(), question.answer, container);
+                answerInput.onkeypress = (e)=>{ if (e.key==='Enter') checkAnswer(answerInput.value.trim(), question.answer, container); };
             }
-            questionIndex++;
         }
 
-        function checkAnswer(input, answer, type) {
+        function checkAnswer(userAnswer, correctAnswer, container){
             let correct = false;
-            if (type === 'choice') {
-                correct = input === answer;
-            } else if (type === 'text') {
-                correct = input.toLowerCase().includes(answer.toLowerCase());
-            } else if (type === 'essay') {
-                correct = input.trim() !== '';
-            }
-
-            const playerEl = isFinal ? document.getElementById('final-player') : document.getElementById('player');
-            const enemyEl = isFinal ? document.getElementById('final-enemy') : document.getElementById('enemy');
-            const playerStartLeft = isFinal ? '20%' : '10%';
-            const enemyStartRight = isFinal ? '20%' : '10%';
-            const chargePos = '40%';
-            const retreatPos = isFinal ? '30%' : '20%';
-
-            const hpDeduction = type === 'choice' ? 30 : 50;
-
-            if (correct) {
-                playerEl.style.transition = 'left 0.5s';
-                playerEl.style.left = chargePos;
-                setTimeout(() => {
-                    enemyEl.classList.add('hurt', 'push-back');
-                    enemyHP -= hpDeduction;
-                    if (enemyHP < 0) enemyHP = 0;
-                    updateHP();
-                    setTimeout(() => {
-                        enemyEl.classList.remove('hurt', 'push-back');
-                        enemyEl.style.right = enemyStartRight;
-                        playerEl.style.left = playerStartLeft;
-                        if (enemyHP <= 0) {
-                            enemyEl.style.transition = 'right 1s';
-                            enemyEl.style.right = '120%';
-                            setTimeout(() => {
-                                if (isFinal) {
-                                    showVictory();
-                                } else {
-                                    updateBracket(playerChar, currentOpponent);
-                                    round++;
-                                    if (round < opponents.length) {
-                                        document.getElementById('battle-screen').style.display = 'none';
-                                        document.getElementById('bracket-screen').style.display = 'flex';
-                                    } else {
-                                        document.getElementById('battle-screen').style.display = 'none';
-                                        document.getElementById('final-battle').style.display = 'block';
-                                        startFinalBattle();
-                                    }
-                                }
-                            }, 1000);
-                        } else {
-                            nextQuestion();
-                        }
-                    }, 500);
-                }, 500);
+            if (typeof correctAnswer === 'string' && correctAnswer.length === 1){ // 選擇題
+                correct = String(userAnswer).toUpperCase() === correctAnswer.toUpperCase();
             } else {
-                enemyEl.style.transition = 'right 0.5s';
-                enemyEl.style.right = chargePos;
-                setTimeout(() => {
-                    playerEl.classList.add('hurt', 'push-back');
-                    playerHP -= hpDeduction;
-                    if (playerHP < 0) playerHP = 0;
-                    updateHP();
-                    setTimeout(() => {
-                        playerEl.classList.remove('hurt', 'push-back');
-                        playerEl.style.left = playerStartLeft;
-                        enemyEl.style.right = enemyStartRight;
-                        if (playerHP <= 0) {
-                            playerEl.style.transition = 'left 1s';
-                            playerEl.style.left = '-20%';
-                            setTimeout(() => {
-                                alert('失敗！');
-                                resetGame();
-                            }, 1000);
-                        } else {
-                            nextQuestion();
-                        }
-                    }, 500);
-                }, 500);
+                const u = String(userAnswer||'').toLowerCase(); const c = String(correctAnswer||'').toLowerCase();
+                correct = u.includes(c) || c.includes(u) || u===c;
             }
+            // disable local options
+            container.querySelectorAll('.option').forEach(b=>b.disabled=true);
+            const submit = container.querySelector('.submit-answer'); if (submit) submit.disabled=true;
+            if (correct) playerAttack(); else enemyAttack();
         }
 
-        function showVictory() {
-            document.getElementById('final-battle').style.display = 'none';
-            document.getElementById('victory-screen').style.display = 'flex';
-            document.getElementById('champion-title').textContent = `恭喜 ${characters[playerChar].name} 獲得冠軍！`;
-            document.getElementById('champion-img').style.backgroundImage = `url(${characters[playerChar].img})`;
+        function playerAttack(){
+            const playerEl = gameState.isFinal ? document.getElementById('final-player') : document.getElementById('player');
+            const enemyEl = gameState.isFinal ? document.getElementById('final-enemy') : document.getElementById('enemy');
+            const originalLeft = playerEl.style.left || (gameState.isFinal ? '20%' : '10%');
+            playerEl.style.transition='left 0.35s'; playerEl.style.left = gameState.isFinal ? '40%' : '35%';
+            setTimeout(()=>{
+                enemyEl.classList.add('hurt'); 
+                if (gameState.isFinal) {
+                    let currentRight = parseFloat(enemyEl.style.right || 20);
+                    enemyEl.style.right = (currentRight - 5) + '%';
+                }
+                gameState.enemyHP = Math.max(0, gameState.enemyHP - 25); updateHP();
+                setTimeout(()=>{
+                    enemyEl.classList.remove('hurt'); playerEl.style.left = originalLeft;
+                    if (gameState.enemyHP<=0) defeatEnemy(); else setTimeout(()=> nextQuestion(), 700);
+                },600);
+            },200);
         }
 
-        function resetGame() {
-            if (isFinal) {
-                document.getElementById('final-battle').style.display = 'none';
+        function enemyAttack(){
+            const playerEl = gameState.isFinal ? document.getElementById('final-player') : document.getElementById('player');
+            const enemyEl = gameState.isFinal ? document.getElementById('final-enemy') : document.getElementById('enemy');
+            const originalRight = enemyEl.style.right || (gameState.isFinal ? '20%' : '10%');
+            enemyEl.style.transition='right 0.35s'; enemyEl.style.right = gameState.isFinal ? '40%' : '35%';
+            setTimeout(()=>{
+                playerEl.classList.add('hurt'); 
+                if (gameState.isFinal) {
+                    let currentLeft = parseFloat(playerEl.style.left || 20);
+                    playerEl.style.left = (currentLeft - 5) + '%';
+                }
+                gameState.playerHP = Math.max(0, gameState.playerHP - 25); updateHP();
+                setTimeout(()=>{
+                    playerEl.classList.remove('hurt'); enemyEl.style.right = originalRight;
+                    if (gameState.playerHP<=0) defeatPlayer(); else setTimeout(()=> nextQuestion(), 700);
+                },600);
+            },200);
+        }
+
+        function defeatEnemy(){
+            const enemyEl = gameState.isFinal ? document.getElementById('final-enemy') : document.getElementById('enemy');
+            if (gameState.isFinal){
+                enemyEl.style.transition='all 1.6s'; enemyEl.style.right='-400px'; enemyEl.style.bottom='-150px'; enemyEl.style.transform='rotate(720deg)';
+                setTimeout(()=> showVictory(), 1400);
             } else {
-                document.getElementById('battle-screen').style.display = 'none';
+                enemyEl.style.transition='opacity 0.8s,right 0.8s'; enemyEl.style.opacity='0'; enemyEl.style.right='-300px';
+                setTimeout(()=> nextRound(), 900);
             }
-            document.getElementById('start-screen').style.display = 'flex';
-            winners = [];
-            round = 0;
-            bracket = [['a', 'b'], ['c', 'd'], ['e', 'f']];
-            playerChar = null;
-            opponents = [];
-            questionIndex = 0;
-            playerHP = 100;
-            enemyHP = 100;
-            isFinal = false;
         }
 
-        document.getElementById('start-button').onclick = () => {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('character-select').style.display = 'flex';
-        };
-
-        document.getElementById('start-battle').onclick = () => {
-            document.getElementById('bracket-screen').style.display = 'none';
-            document.getElementById('battle-screen').style.display = 'block';
-            startBattle();
-        };
-
-        document.getElementById('restart-button').onclick = () => {
-            document.getElementById('victory-screen').style.display = 'none';
-            document.getElementById('start-screen').style.display = 'flex';
+        function defeatPlayer(){
+            // 進入失敗處理（目前簡單重啟）
+            alert('你被擊敗了，遊戲將重置');
             resetGame();
-        };
+        }
 
-        animatePigeon();
-        initCharSelect();
+        function nextRound(){
+            gameState.round++;
+            if (gameState.round >= gameState.opponents.length){ // 結束賽程
+                // 回到 bracket 以便顯示冠軍賽資訊
+                document.getElementById('battle-screen').style.display='none';
+                document.getElementById('bracket-screen').style.display='flex';
+                updateBracket();
+            } else {
+                document.getElementById('battle-screen').style.display='none';
+                document.getElementById('bracket-screen').style.display='flex';
+                updateBracket();
+            }
+        }
 
-        const screens = ['start-screen', 'character-select', 'bracket-screen', 'battle-screen', 'final-battle', 'victory-screen'];
-        screens.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.transition = 'opacity 1s';
-        });
+        function updateBracket(){
+            const fighters = document.querySelectorAll('.fighter');
+            fighters.forEach(f=>{
+                const char = f.dataset.char;
+                f.classList.remove('eliminated','winner');
+                if (gameState.opponents.slice(0, gameState.round).includes(char)) f.classList.add('eliminated');
+                if (char === gameState.playerChar) f.classList.add('winner');
+            });
+        }
+
+        function endBattle(){
+            if (gameState.playerHP > gameState.enemyHP) defeatEnemy();
+            else if (gameState.enemyHP > gameState.playerHP) defeatPlayer();
+            else { if (gameState.playerHP >= gameState.enemyHP) defeatEnemy(); else defeatPlayer(); }
+        }
+
+        function showVictory(){
+            document.getElementById('final-battle').style.display='none'; document.getElementById('victory-screen').style.display='flex';
+            const championImg = document.getElementById('champion-img'); const loserImg = document.getElementById('loser-img');
+            championImg.style.backgroundImage = `url(${characters[gameState.playerChar].img})`;
+            loserImg.style.backgroundImage = `url(${characters[gameState.currentOpponent].img})`;
+            document.getElementById('champion-title').textContent = `恭喜 ${characters[gameState.playerChar].name} 獲得冠軍！`;
+            startFloating();
+        }
+
+        // 瘋狂隨機移動動畫
+        let floatRAF = null;
+        function startFloating(){
+            cancelAnimationFrame(floatRAF);
+            const champ = document.getElementById('champion-img');
+            let x = window.innerWidth / 2 - 150, y = window.innerHeight / 2 - 150;
+            let dx = (Math.random() - 0.5) * gameState.floatSpeed * 2;
+            let dy = (Math.random() - 0.5) * gameState.floatSpeed * 2;
+            let rotation = 0;
+            const w = window.innerWidth - 300;
+            const h = window.innerHeight - 300;
+
+            function loop(){
+                if (gameState.isAccelerating && gameState.floatSpeed < 20) {
+                    gameState.floatSpeed = Math.min(gameState.floatSpeed + 0.1, 20);
+                }
+
+                x += dx;
+                y += dy;
+                rotation += (Math.random() - 0.5) * 10; // 隨機旋轉
+
+                if (x > w || x < 0) {
+                    dx = -dx;
+                    dx += (Math.random() - 0.5) * gameState.floatSpeed; // 添加隨機變化
+                }
+                if (y > h || y < 0) {
+                    dy = -dy;
+                    dy += (Math.random() - 0.5) * gameState.floatSpeed; // 添加隨機變化
+                }
+
+                // 限制速度
+                const speed = Math.sqrt(dx*dx + dy*dy);
+                if (speed > gameState.floatSpeed) {
+                    dx = (dx / speed) * gameState.floatSpeed;
+                    dy = (dy / speed) * gameState.floatSpeed;
+                }
+
+                // 偶爾改變方向以增加瘋狂感
+                if (Math.random() < 0.05) {
+                    dx += (Math.random() - 0.5) * gameState.floatSpeed;
+                    dy += (Math.random() - 0.5) * gameState.floatSpeed;
+                }
+
+                champ.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${1 + Math.sin(Date.now() / 200) * 0.1})`;
+                floatRAF = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function accelerate(){
+            if (gameState.isAccelerated) return;
+            gameState.isAccelerated = true;
+            gameState.isAccelerating = true;
+            const made = document.getElementById('made-in-heaven'); made.style.display='block';
+            setTimeout(()=>{ made.style.display='none'; gameState.isAccelerating = false; }, 3000);
+        }
+
+        function resetGame(){
+            // 隱藏所有畫面
+            document.querySelectorAll('#game-container > div:not(#transition-overlay)').forEach(screen=> screen.style.display='none');
+            // 顯示角色選擇
+            document.getElementById('character-select').style.display='flex';
+            // 重置狀態
+            gameState = { playerChar:null,opponents:[],currentOpponent:null,round:0,playerHP:100,enemyHP:100,questionIndex:0,isFinal:false,usedQuestions:[],floatSpeed:2,isAccelerating:false,isAccelerated:false };
+            // 重置角色選單
+            document.querySelectorAll('.char-box').forEach(box=> box.classList.remove('selected','dimmed'));
+            document.getElementById('selected-overlay').classList.remove('active');
+            document.getElementById('confirm-button').classList.remove('show');
+            document.getElementById('char-grid').classList.remove('selected-mode');
+            // 重新渲染角色格
+            renderCharGrid();
+            // 停止鴿子
+            stopPigeonLoop();
+        }
+
+        function setupEventListeners(){
+            document.getElementById('start-button').onclick = ()=>{ document.getElementById('start-screen').style.display='none'; document.getElementById('character-select').style.display='flex'; };
+            document.getElementById('confirm-button').onclick = confirmCharacter;
+            document.getElementById('start-battle').onclick = startBattle;
+            document.getElementById('restart-button').onclick = resetGame;
+            document.getElementById('speed-button').onclick = accelerate;
+            // 當返回 bracket 時，按下某個 match 可以直接開始對那個對手（方便測試）
+            document.getElementById('left-bracket').addEventListener('click',(e)=>{ const f = e.target.closest('.fighter'); if (f){ const ch = f.dataset.char; const idx = gameState.opponents.indexOf(ch); if (idx>=0){ gameState.round = idx; startBattle(); } }});
+            document.getElementById('right-bracket').addEventListener('click',(e)=>{ const f = e.target.closest('.fighter'); if (f){ const ch = f.dataset.char; const idx = gameState.opponents.indexOf(ch); if (idx>=0){ gameState.round = idx; startBattle(); } else if (ch===gameState.playerChar){ /* player clicked */ }} });
+        }
+
+        // 啟動
+        init();
     </script>
 </body>
 </html>
